@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Image and Display Captcha Result</title>
+    <!-- Bootstrap CDN -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 600px;
+        }
+        .center-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align:center;
+        }
+        .image-preview {
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            border: 2px solid #ddd;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        /* Styling for the file input field */
+        .custom-file-input {
+            cursor: pointer;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+        }
+        .custom-file-label::after {
+            content: "Choose File";
+        }
+        .custom-file-label-selected::after {
+            content: attr(data-content);
+        }
+        .lead{
+         color:#fcb603;
+         font-size:20px;
+         font-weight:bold;
+         background-color:#0d0d0d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container center-content">
+        <h1>Upload Image and Display Captcha Result</h1>
+        <div class="custom-file mb-2">
+            <input type="file" class="custom-file-input" id="imageInput" accept="image/*" required>
+            <label class="custom-file-label" for="imageInput" data-content="Choose File"></label>
+        </div>
+        
+
+        <div class="image-preview" id="imagePreview" style="display: none;">
+            <h3 class="mt-4">Uploaded Image:</h3>
+            <img id="uploadedImage" class="img-fluid rounded mt-3" alt="Uploaded Image">
+        </div>
+
+        <div id="predictionResult" style="display: none;">
+            <h3 class="mt-4">Predicted Captcha:</h3>
+            <p id="prediction"  class="lead"></p>
+        </div>
+
+        <button type="button" class="btn btn-primary" id="predictButton" disabled>Predict</button>
+        
+    </div>
+
+    <!-- Bootstrap JS CDN -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        const predictButton = document.getElementById('predictButton');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        const uploadedImage = document.getElementById('uploadedImage');
+        const predictionResult = document.getElementById('predictionResult');
+        const prediction = document.getElementById('prediction');
+
+        imageInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    uploadedImage.src = reader.result;
+                    imagePreview.style.display = 'flex';
+                    predictButton.disabled = false;
+                    predictButton.innerHTML = 'Predict';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+       
+        predictButton.addEventListener('click', () => {
+        const image = uploadedImage.src;
+        if (image) {
+            predictButton.disabled = true;
+            predictButton.innerHTML = 'Predicting...';
+            // Make an AJAX request to the prediction view
+            fetch('{% url "predict_captcha" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                },
+                body: JSON.stringify({ image }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                prediction.innerText = data.prediction;
+                predictionResult.style.display = 'block';
+                predictButton.disabled = false;
+                predictButton.innerHTML = 'Predict';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                predictButton.disabled = false;
+                predictButton.innerHTML = 'Predict';
+            });
+        }
+    });
+    </script>
+</body>
+</html>
